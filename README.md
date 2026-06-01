@@ -1,6 +1,6 @@
 # AuthGuard Decision Tree & Threat Analyzer 🛡️⚡
 
-An interactive, premium, zero-dependency web-based security portal and state machine designed to help software engineers, security professionals, and architects navigate complex Authentication (AuthN) and Authorization (AuthZ) decisions while automatically embedding critical security controls.
+An interactive browser based tool to help you chose the correct Authentication (AuthN) and Authorization (AuthZ) flow for your application.
 
 ---
 
@@ -59,10 +59,3 @@ Launch the security workspace immediately on your local machine:
 2. **Run it locally:**
    - Double-click `index.html` to load the application directly in any modern browser using the `file://` protocol.
    - Alternatively, serve it via a simple server for complete, seamless console executions (e.g. `npx serve`, Live Server VS Code extension, or `python -m http.server`).
-
----
-
-## 🔮 Future Enhancements
-- **📊 Interactive Risk Heatmaps:** Live visual diagrams plotting structural vulnerability scores based on selected configurations.
-- **🔌 Local policy mock engine:** Automatically generate secure middleware scripts (e.g. Node/Express, Python/FastAPI) derived from your audited decision outcome.
-- **📄 Premium PDF Exports:** Direct PDF generation and styling for executive-level security review summaries.
