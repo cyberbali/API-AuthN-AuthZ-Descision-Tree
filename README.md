@@ -9,11 +9,6 @@ An interactive browser based tool to help you chose the correct Authentication (
 - **🌐 Sleek Landing Portal Homepage:** A premium, glassmorphic dashboard workspace allowing architects to choose between entering the **AuthN (Identity)** or **AuthZ (Access)** domain.
 - **🧠 Interactive Decision Wizards:** Walk step-by-step through identity scenarios, stable role mappings, contextual attributes, or graph-based relationships with attack-based security notes.
 - **🎨 Live Dynamic SVG Flowcharts:** Vector graphics dynamically clear and redraw nodes (circles for questions, rounded rects for decisions) and connecting bezier curves, highlighting visited paths and active states in real-time.
-- **🛡️ Automated Security Guardrails:**
-  - **AuthN Flow:** Dynamically merges and attaches **💡 MFA Implementation Policies** and threat mitigations to terminal mechanism cards.
-  - **AuthZ Flow:** Programmatically merges and injects **🛡️ Multi-Tenancy Isolation Bounds** and **⚙️ Function-Level Access Protections** (protecting against spoofed BOLA and OWASP API5) directly into terminal outcomes.
-- **📝 Context-Aware Security Audits:** Generate, copy, and download custom, comprehensive markdown audit reports mapping full traversal histories and custom recommended security controls.
-- **🎵 Retro-Futuristic Synth Sound Synthesis:** Native Web Audio API audio synthesis provides immersive interactive sound feedback on navigation transitions.
 
 ---
 
@@ -34,15 +29,6 @@ Enforces granular access control models and mitigates object-level (BOLA) and fu
 - **ABAC (Attribute-Based):** Fine-grained contextual validation matching attributes from user, resource, action, and environment simultaneously.
 - **ReBAC (Relationship-Based):** Graph-based access inheritance based on resource relations (e.g., project -> resource -> comment).
 - **Embedded Tenant & Function Safeguards:** Non-negotiable database tenant query predicates, token-derived isolation, method-level verb validations, and explicit administrative endpoint guards.
-
----
-
-## 🛠️ Technology Stack
-
-Built with 100% vanilla, zero-dependency, modern technologies for blazing-fast performance and aesthetic visual excellence:
-- **Markup & Layout:** Semantic HTML5 & Flexbox/Grid CSS3 layout structures.
-- **Aesthetics:** CSS3 custom variables, custom glassmorphism panels, glowing indicator states, and hardware-accelerated transitions.
-- **State Machine & Rendering:** ES6 vanilla JavaScript controller handling data bindings, path histories, dynamic SVG vector drawing, and Web Audio API synthesizer.
 
 ---
 
