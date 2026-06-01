@@ -1,53 +1,54 @@
 # AuthGuard Decision Tree & Threat Analyzer 🛡️⚡
 
-An interactive, premium, web-based flowchart and state machine designed to help software engineers, security professionals, and architects navigate complex Authentication (AuthN) architectures and automatically embed critical security controls.
-
-The repository is named **`API-AuthN-AuthZ-Descision-Tree`** to reflect current AuthN capabilities and upcoming expansions into granular Authorization (AuthZ) mechanisms.
+An interactive, premium, zero-dependency web-based security portal and state machine designed to help software engineers, security professionals, and architects navigate complex Authentication (AuthN) and Authorization (AuthZ) decisions while automatically embedding critical security controls.
 
 ---
 
 ## ✨ Key Features
 
-- **🧠 Interactive Decision Wizard:** Traverses complex authentication scenarios, analyzing architectures step-by-step with real-time feedback.
-- **🎨 Dynamic SVG Flowchart Visualizer:** Live path tracing highlights active decisions, visited nodes, and future choices as you interact with the tree.
-- **⚡ Proactive MFA Policy Injection:** Automatically embeds and displays Multi-Factor Authentication (MFA) policy guidelines and mitigates associated threats dynamically inside terminal nodes.
-- **🗃️ Security Threat & Attack Mitigator:** Connects design outcomes to real-world attack vectors (XSS cookie theft, CSRF, PKCE code interception, service key leakage).
-- **📝 Automated Security Audits:** Generate, review, copy, and download custom, comprehensive markdown audit reports of your architecture paths.
-- **🎵 Retro-Futuristic Synth Sounds:** Dynamic audio feedback powered by the browser's native Web Audio API.
+- **🌐 Sleek Landing Portal Homepage:** A premium, glassmorphic dashboard workspace allowing architects to choose between entering the **AuthN (Identity)** or **AuthZ (Access)** domain.
+- **🧠 Interactive Decision Wizards:** Walk step-by-step through identity scenarios, stable role mappings, contextual attributes, or graph-based relationships with attack-based security notes.
+- **🎨 Live Dynamic SVG Flowcharts:** Vector graphics dynamically clear and redraw nodes (circles for questions, rounded rects for decisions) and connecting bezier curves, highlighting visited paths and active states in real-time.
+- **🛡️ Automated Security Guardrails:**
+  - **AuthN Flow:** Dynamically merges and attaches **💡 MFA Implementation Policies** and threat mitigations to terminal mechanism cards.
+  - **AuthZ Flow:** Programmatically merges and injects **🛡️ Multi-Tenancy Isolation Bounds** and **⚙️ Function-Level Access Protections** (protecting against spoofed BOLA and OWASP API5) directly into terminal outcomes.
+- **📝 Context-Aware Security Audits:** Generate, copy, and download custom, comprehensive markdown audit reports mapping full traversal histories and custom recommended security controls.
+- **🎵 Retro-Futuristic Synth Sound Synthesis:** Native Web Audio API audio synthesis provides immersive interactive sound feedback on navigation transitions.
 
 ---
 
 ## 🗺️ Architectural Structure
 
-The analyzer is structured into two main lanes of authentication flow, preparing the ground for future AuthZ (authorization) rules:
+The analyzer features two distinct, fully-functional decision workspaces:
 
-### Lane A: Human Callers (Authentication & MFA)
-Designed for human-initiated access to resources through web browser or mobile client applications:
-1. **First-Party vs. Third-Party Scope:** Determines OAuth delegation vs. direct authentication bounds.
-2. **Server-Side Rendered (SSR) Sessions:** Focuses on secure HttpOnly, SameSite=Lax/Strict session design to prevent CSRF and XSS.
-3. **Single Page Apps (SPAs) & Mobile Clients:** Recommends memory-stored tokens, HttpOnly refresh cookies, and strict Proof Key for Code Exchange (PKCE) implementations to block code hijacking.
-4. **Automated MFA Safeguards:** Programmatically attaches step-up, risk-based, and administrator MFA policy directives right into the chosen workflow.
+### 1. Authentication Domain (AuthN)
+Designed for evaluating human-initiated or machine-initiated identities:
+- **Human Callers:** First-party vs. third-party apps, SSR session designs (HttpOnly, SameSite=Lax sessions), or Single-Page Apps (SPA) memory-token/refresh-cookie storage with PKCE verification.
+- **Machine Callers:** Service-to-service internal cloud meshes utilizing Vault-stored Client Credentials, network-level Mutual TLS (mTLS), or Private Key JWT cryptographically-bound assertions.
+- **MFA Policy Controls:** Evaluates admin bounds, sensitive action step-up auth, or context/risk-based factors contextually.
 
-### Lane B: Machine Callers (Service-to-Service)
-A zero-trust model for internal service workloads or external third-party API integrations:
-1. **Internal S2S Workloads:** Identifies standard, high-assurance, or zero-trust boundaries using Client Credentials, Mutual TLS (mTLS), or Private Key JWT authentication.
-2. **External Integrations:** Recommends header-bound API keys, client credentials, or network-level mTLS based on security compliance thresholds.
+### 2. Authorization Domain (AuthZ)
+Enforces granular access control models and mitigates object-level (BOLA) and function-level failures:
+- **OAuth Scopes:** Course-grained token-level operation claims (best for partner and machine API boundaries).
+- **RBAC (Role-Based):** Stable, function-based role hierarchies embedded in verified JWT claims.
+- **ABAC (Attribute-Based):** Fine-grained contextual validation matching attributes from user, resource, action, and environment simultaneously.
+- **ReBAC (Relationship-Based):** Graph-based access inheritance based on resource relations (e.g., project -> resource -> comment).
+- **Embedded Tenant & Function Safeguards:** Non-negotiable database tenant query predicates, token-derived isolation, method-level verb validations, and explicit administrative endpoint guards.
 
 ---
 
 ## 🛠️ Technology Stack
 
-Built with 100% standard, modern, zero-dependency technologies for ultimate speed and visual customization:
-- **Core:** Semantic HTML5 & Modern ES6 JavaScript.
-- **Visuals:** Vector SVG rendering canvas with absolute position mapping and coordinate balancing.
-- **Aesthetics:** CSS3 Custom Properties, neon dark/light theme, custom glassmorphism panels, and GPU-accelerated transition animations.
-- **Audio:** Web Audio API sound synthesis.
+Built with 100% vanilla, zero-dependency, modern technologies for blazing-fast performance and aesthetic visual excellence:
+- **Markup & Layout:** Semantic HTML5 & Flexbox/Grid CSS3 layout structures.
+- **Aesthetics:** CSS3 custom variables, custom glassmorphism panels, glowing indicator states, and hardware-accelerated transitions.
+- **State Machine & Rendering:** ES6 vanilla JavaScript controller handling data bindings, path histories, dynamic SVG vector drawing, and Web Audio API synthesizer.
 
 ---
 
 ## 🚀 Quick Start
 
-Since this is a lightweight, zero-dependency frontend application, you can run it immediately without complex compilation setups:
+Launch the security workspace immediately on your local machine:
 
 1. **Clone the repository:**
    ```bash
@@ -56,13 +57,12 @@ Since this is a lightweight, zero-dependency frontend application, you can run i
    ```
 
 2. **Run it locally:**
-   - Simply double-click `index.html` to open it directly in your browser.
-   - Alternatively, serve it using any simple dev server (e.g., Live Server extension in VS Code, `npx serve`, or `python -m http.server`).
+   - Double-click `index.html` to load the application directly in any modern browser using the `file://` protocol.
+   - Alternatively, serve it via a simple server for complete, seamless console executions (e.g. `npx serve`, Live Server VS Code extension, or `python -m http.server`).
 
 ---
 
-## 🔮 Roadmap (Future AuthZ Expansions)
-Future releases will expand this repository's decision state machine to support:
-- **Role-Based Access Control (RBAC):** Designing secure role hierarchies and permissions.
-- **Attribute-Based Access Control (ABAC):** Policy design matching user, environmental, and resource factors.
-- **OAuth 2.0 Scopes & Grants:** Mapping API endpoints to custom scopes (`read:profile`, `write:settings`) and verifying token signatures downstream.
+## 🔮 Future Enhancements
+- **📊 Interactive Risk Heatmaps:** Live visual diagrams plotting structural vulnerability scores based on selected configurations.
+- **🔌 Local policy mock engine:** Automatically generate secure middleware scripts (e.g. Node/Express, Python/FastAPI) derived from your audited decision outcome.
+- **📄 Premium PDF Exports:** Direct PDF generation and styling for executive-level security review summaries.

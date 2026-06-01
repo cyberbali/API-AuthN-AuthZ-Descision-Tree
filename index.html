@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Authentication Decision Tree & Threat Model Explorer</title>
-    <meta name="description" content="An interactive web-based decision tree for authentication flows, walking developers through first-party, third-party, and machine calling scenarios with real-world threat models.">
+    <title>AuthGuard - Interactive AuthN & AuthZ Flow and Threat Analyzer</title>
+    <meta name="description" content="An interactive web-based decision tree for authentication and authorization architecture flows, walking developers through secure session designs, tokens, OAuth scopes, RBAC, ABAC, and ReBAC models.">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,13 +25,20 @@
                 <path d="M12 16h.01"/>
             </svg>
             <div class="logo-text">
-                <h1>AuthGuard <span class="accent-text">Tree</span></h1>
-                <p class="subtitle">Interactive Authentication Flow & Threat Analyzer</p>
+                <h1>AuthGuard <span class="accent-text">Portal</span></h1>
+                <p class="subtitle">Interactive Authentication-Authorization Flow & Threat Analyzer</p>
             </div>
         </div>
         
-
         <div class="header-actions">
+            <!-- Return to Home Button (hidden on landing page) -->
+            <button id="btn-home" class="action-btn hidden" title="Return to Homepage" aria-label="Return to Home">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span>Portal Home</span>
+            </button>
             <button id="btn-theme-toggle" class="action-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
                 <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="5"/>
@@ -51,20 +58,82 @@
         </div>
     </header>
 
-    <div class="breadcrumbs-container">
-        <div id="breadcrumbs" class="breadcrumbs">
-            <span class="breadcrumb-item active" data-node="start">START</span>
+    <!-- View 1: Landing Portal (Homepage) -->
+    <main id="view-landing" class="app-viewport landing-viewport">
+        <div class="landing-container">
+            <div class="landing-intro">
+                <span class="portal-badge">SECURITY ARCHITECT PORTAL</span>
+                <h2 class="portal-heading">Interactive Access Control Architect</h2>
+                <p class="portal-subtext">Choose a security design domain below to model workflows, evaluate technical mechanisms, and mitigate real-world vulnerabilities against industry standards.</p>
+            </div>
+            
+            <div class="portal-cards-grid">
+                <!-- Card 1: AuthN -->
+                <button id="card-route-authn" class="glass-card portal-card" aria-label="Enter Authentication Decision Tree">
+                    <div class="portal-card-header">
+                        <div class="portal-icon-box authn-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="M12 8v4"/>
+                                <path d="M12 16h.01"/>
+                            </svg>
+                        </div>
+                        <h3>Authentication (AuthN)</h3>
+                    </div>
+                    <div class="portal-card-body">
+                        <p>Map the identities of <strong>human users</strong> (web, mobile, SPAs) and <strong>automated machine clients</strong> (service-to-service, client credentials).</p>
+                        <ul class="portal-feature-list">
+                            <li>Session Storage & Token Security</li>
+                            <li>OAuth 2.0 / PKCE Flow Designs</li>
+                            <li>Dynamic MFA Implementation Policies</li>
+                        </ul>
+                    </div>
+                    <div class="portal-card-footer">
+                        <span class="portal-action-link">Launch AuthN Tree &rarr;</span>
+                    </div>
+                </button>
+                
+                <!-- Card 2: AuthZ -->
+                <button id="card-route-authz" class="glass-card portal-card" aria-label="Enter Authorization Decision Tree">
+                    <div class="portal-card-header">
+                        <div class="portal-icon-box authz-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <h3>Authorization (AuthZ)</h3>
+                    </div>
+                    <div class="portal-card-body">
+                        <p>Analyze access control models based on job function (<strong>RBAC</strong>), complex environment variables (<strong>ABAC</strong>), or graph relationships (<strong>ReBAC</strong>).</p>
+                        <ul class="portal-feature-list">
+                            <li>OAuth 2.0 Scope-Based Operations</li>
+                            <li>Strict Multi-Tenancy Isolation Bounds</li>
+                            <li>Function-Level Access Protections</li>
+                        </ul>
+                    </div>
+                    <div class="portal-card-footer">
+                        <span class="portal-action-link">Launch AuthZ Tree &rarr;</span>
+                    </div>
+                </button>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <main class="app-viewport">
-        <!-- Tab 1: Wizard Interface -->
-        <section id="tab-content-wizard" class="tab-panel active">
+    <!-- View 2: Analyzer View (Decision Tree & SVG Flowchart) -->
+    <div id="view-analyzer" class="hidden">
+        <div class="breadcrumbs-container">
+            <div id="breadcrumbs" class="breadcrumbs">
+                <span class="breadcrumb-item active" data-node="start">START</span>
+            </div>
+        </div>
+
+        <main class="app-viewport">
             <div class="split-layout">
                 <!-- Left Column: Wizard Cards -->
                 <div class="wizard-column">
                     <div id="wizard-card-wrapper" class="wizard-card-wrapper">
-                        <!-- Content will be dynamically populated by JS -->
+                        <!-- Content populated dynamically by JS -->
                         <div id="wizard-card" class="glass-card wizard-card">
                             <div class="card-header">
                                 <span class="step-badge">GETTING STARTED</span>
@@ -72,7 +141,7 @@
                             </div>
                             <div class="card-body">
                                 <p id="wizard-text" class="wizard-body-text">
-                                    This interactive tool walks you through every authentication scenario with specific attack-based reasoning behind each choice. Find out what mechanism fits your architecture and why.
+                                    This interactive tool walks you through authentication and authorization scenarios with specific attack-based reasoning behind each choice. Find out what mechanism fits your architecture and why.
                                 </p>
                                 <div id="wizard-notes" class="wizard-info-box">
                                     <div class="info-icon">💡</div>
@@ -106,7 +175,7 @@
                     <div class="glass-card graph-card">
                         <div class="graph-header">
                             <div class="graph-title-group">
-                                <h3>Interactive Flow Visualizer</h3>
+                                <h3 id="graph-title-text">Interactive Flow Visualizer</h3>
                                 <p>Trace your design path and click nodes to traverse them</p>
                             </div>
                             <div class="graph-legend">
@@ -118,7 +187,6 @@
                         <div class="graph-canvas-container">
                             <!-- SVG Decision Tree rendering canvas -->
                             <svg id="svg-canvas" viewBox="0 0 600 650" width="100%" height="100%" class="svg-tree">
-                                <!-- Define filters for neon glows -->
                                 <defs>
                                     <filter id="glow-active" x="-20%" y="-20%" width="140%" height="140%">
                                         <feGaussianBlur stdDeviation="6" result="blur" />
@@ -128,7 +196,6 @@
                                         <feGaussianBlur stdDeviation="4" result="blur" />
                                         <feComposite in="SourceGraphic" in2="blur" operator="over" />
                                     </filter>
-                                    <!-- Arrow marker for directed edges -->
                                     <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                         <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--color-edge-default)" />
                                     </marker>
@@ -136,19 +203,15 @@
                                         <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--color-edge-active)" />
                                     </marker>
                                 </defs>
-                                
-                                <!-- Group for edges (lines connecting nodes) -->
                                 <g id="edges-group"></g>
-                                
-                                <!-- Group for node elements -->
                                 <g id="nodes-group"></g>
                             </svg>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
-    </main>
+        </main>
+    </div>
 
     <!-- Overlay: Report Modal -->
     <div id="report-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -158,7 +221,7 @@
                 <button id="btn-close-modal" class="close-btn" aria-label="Close Report Modal">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="modal-intro">Below is your customized authentication architecture report with complete decision logs, recommended parameters, and attack threats mitigated by this choice.</p>
+                <p class="modal-intro">Below is your customized security architecture report with complete decision logs, recommended parameters, and attack threats mitigated by this choice.</p>
                 
                 <div class="report-box">
                     <pre id="report-markdown-content" class="report-content"></pre>

@@ -1205,3 +1205,197 @@ a:hover {
         justify-content: center;
     }
 }
+
+/* --- New Landing Portal & SPA Utility Styles --- */
+.hidden {
+    display: none !important;
+}
+
+.landing-viewport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    animation: fadeIn var(--transition-normal);
+}
+
+.landing-container {
+    max-width: 1000px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.landing-intro {
+    text-align: center;
+}
+
+.portal-badge {
+    font-family: var(--font-code);
+    font-size: 0.8rem;
+    color: var(--accent-cyan);
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 6px 14px;
+    background-color: rgba(56, 189, 248, 0.08);
+    border-radius: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.portal-heading {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.portal-subtext {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.portal-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.portal-card {
+    text-align: left;
+    outline: none;
+    border: 1px solid var(--border-color);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 380px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    text-decoration: none;
+}
+
+.portal-card:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 20px -5px var(--accent-cyan-glow);
+}
+
+.portal-card-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.portal-icon-box {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #070a13;
+}
+
+.portal-icon-box svg {
+    width: 28px;
+    height: 28px;
+}
+
+.authn-icon {
+    background: linear-gradient(135deg, var(--accent-cyan), #0077ff);
+    box-shadow: 0 4px 15px rgba(0, 119, 255, 0.3);
+}
+
+.authz-icon {
+    background: linear-gradient(135deg, var(--accent-green), #059669);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.portal-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.portal-card-body p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.portal-feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.portal-feature-list li {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.portal-feature-list li::before {
+    content: "⚡";
+    color: var(--accent-cyan);
+    font-size: 0.8rem;
+}
+
+.portal-card:hover .portal-feature-list li {
+    color: var(--text-secondary);
+}
+
+.portal-card-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.portal-action-link {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--accent-cyan);
+    transition: transform var(--transition-fast);
+}
+
+.portal-card:hover .portal-action-link {
+    transform: translateX(6px);
+    color: var(--text-primary);
+}
+
+/* Specific layout adjustments for single viewport */
+#btn-home span {
+    font-family: var(--font-heading);
+    font-weight: 600;
+}
+
+.light-theme .portal-card:hover {
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05), 0 0 15px rgba(2, 132, 199, 0.1);
+}
+
+@media (max-width: 768px) {
+    .portal-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .portal-card {
+        padding: 30px;
+        min-height: auto;
+    }
+}

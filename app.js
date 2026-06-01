@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------
  * AuthGuard Tree JS Controller
  * Logic for State Management, Dynamic SVG Drawing, Audio Synth,
- * Search Filters, and Report Export.
+ * Multi-Flow Portal Routing, and Custom Security Audit Report.
  * ------------------------------------------------------------- */
 
 // Synthesize retro-futuristic synth UI sounds using Web Audio API
@@ -48,7 +48,7 @@ const playSound = (type) => {
     }
 };
 
-// 1. The Decision Tree Database (Fully derived from req.docx)
+// 1. The Decision Tree Database (Fully derived from raw specs)
 const MFA_RECOMMENDATION = {
     mfaPolicies: [
         { name: 'Always for Admin Operations', desc: 'Any operation that creates/modifies/deletes users, changes permissions, accesses bulk data, or touches configuration.' },
@@ -64,10 +64,35 @@ const MFA_RECOMMENDATION = {
     ]
 };
 
+const AUTHZ_RECOMMENDATION = {
+    multiTenancy: [
+        { name: 'Token-Derived Tenant ID', desc: 'Tenant ID must come from the cryptographically verified token — never from request parameters, headers, or request bodies to avoid spoofing.' },
+        { name: 'Non-Negotiable Query Filters', desc: 'Every database query must enforce tenant filtering (e.g., SELECT * FROM findings WHERE id = ? AND tenant_id = ?).' },
+        { name: 'Explicit Cross-Tenant Testing', desc: 'Verify isolation borders directly: authenticate as Tenant A, try to request Tenant B\'s resources, and confirm the system returns 404 (not 403) so as not to confirm existence.' }
+    ],
+    functionProtection: [
+        { name: 'Explicit Check on Every Endpoint', desc: 'Enforce an active authorization check on all paths; no endpoint should be "public" by default.' },
+        { name: 'Admin/Management Borders', desc: 'Enforce elevated roles explicitly on administration boundaries (/api/admin/*). Never rely on security through obscurity (hidden UI links).' },
+        { name: 'HTTP Method Validation', desc: 'Check method-level actions explicitly. GET /api/findings can be open, but DELETE /api/findings must demand elevated permissions.' }
+    ],
+    threats: [
+        {
+            name: 'Tenant ID Spoofing in Request Body (BOLA / IDOR)',
+            critical: true,
+            desc: 'If an API extracts the tenant_id from the request body payload (e.g., POST /api/findings { tenant_id: "victim-corp" }), any attacker can easily view or corrupt other tenants\' data. This is a textbook BOLA vulnerability.'
+        },
+        {
+            name: 'Broken Function Level Access (OWASP API5)',
+            critical: true,
+            desc: 'Privileged admin endpoints are left completely unprotected under the assumption that since there is no link in the UI, normal users cannot see them. Attackers scan common directories and execute them directly with normal user tokens.'
+        }
+    ]
+};
+
 const DECISION_TREE = {
     'start': {
         id: 'start',
-        branch: 'START',
+        branch: 'START — Authentication Flow',
         type: 'question',
         title: 'Authentication Scenario Selection',
         text: 'What type of caller is requesting access to your system? Walk this tree once for each distinct caller type (e.g., human users or automated machine clients) you identified in your architecture.',
@@ -299,63 +324,161 @@ const DECISION_TREE = {
                 desc: 'If the key is compromised, the attacker has every permission the key has. Issue separate keys for separate integration points, each scoped to the minimum required operations. This limits the blast radius of any single key compromise.'
             }
         ]
+    },
+    
+    // --- Branch Z: Authorization Flow ---
+    'authz_start': {
+        id: 'authz_start',
+        branch: 'START — Authorization Flow',
+        type: 'question',
+        title: 'Authorization Model Selection',
+        text: 'What type of client or transaction requires access validation inside your application?',
+        notes: 'Access boundaries can vary along multiple dimensions: Role (job function), Resource ownership (creator), Organization/Tenant (multi-tenant boundaries), Attributes (clearance, context), or Relationships (graph membership). Select the primary caller type to start.',
+        choices: [
+            { text: 'Machine / Partner Integration (Operation-level)', next: 'Z_model_scopes', desc: 'Scope-based authorization where access control is coarse-grained (can do operation X).' },
+            { text: 'Human User (Fine-grained or Resource-level)', next: 'Z_dimensions', desc: 'Access depends on user roles, tenant limits, environmental conditions, or relationships.' }
+        ]
+    },
+    'Z_dimensions': {
+        id: 'Z_dimensions',
+        branch: 'Branch Z — Authorization Flow',
+        type: 'question',
+        title: 'Select Fine-Grained Access Control Dimension',
+        text: 'What primary factor determines whether a human user should be allowed to access a specific resource in your system?',
+        notes: 'Your system may have multiple dimensions. Start by selecting the primary model, and the analyzer will automatically attach Multi-Tenancy and Function-Level mitigations to your chosen design.',
+        choices: [
+            { text: 'Job Function (Stable User Roles)', next: 'Z_model_rbac', desc: 'Access control is primarily determined by job function (e.g., viewer, analyst, admin) with a small, stable set of roles.' },
+            { text: 'Multiple Contextual Attributes', next: 'Z_model_abac', desc: 'Access depends on environment variables (time, device trust) or user attributes (clearance) checked simultaneously.' },
+            { text: 'Resource Relationships / Graphs', next: 'Z_model_rebac', desc: 'Access depends on the user\'s specific relationship to a resource hierarchy (e.g., project member, assessment owner).' }
+        ]
+    },
+    'Z_model_scopes': {
+        id: 'Z_model_scopes',
+        branch: 'Branch Z — Authorization Flow',
+        type: 'decision',
+        title: 'OAuth 2.0 Scope-Based Coarse-Grained Authorization',
+        decisionText: 'Implement OAuth 2.0 scope checks on the resource server. Verify that the client\'s verified token carries the required scope (e.g. read:findings, write:alerts) before executing the operation. Ensure scopes are tightly-scoped and client credentials flow secrets are stored in a dedicated vault.',
+        threats: [
+            {
+                name: 'Scope-Based Auth Alone for User-Facing APIs',
+                critical: true,
+                desc: 'A user token with scope "read:findings" can read ALL findings regardless of tenant or owner. Scopes are coarse-grained (can do X) and do NOT enforce object-level limits. You need scopes PLUS RBAC/ABAC/ReBAC for user-facing applications.'
+            }
+        ]
+    },
+    'Z_model_rbac': {
+        id: 'Z_model_rbac',
+        branch: 'Branch Z — Authorization Flow',
+        type: 'decision',
+        title: 'Role-Based Access Control (RBAC)',
+        decisionText: 'Assign users to predefined roles (e.g. viewer, analyst, admin) and map permissions to those roles. Embed the active role inside verified JWT claims and validate the role at every endpoint. This is the optimal, stable starting point for internal application interfaces.',
+        threats: [
+            {
+                name: 'RBAC without Object-Level Checks (BOLA / IDOR)',
+                critical: true,
+                desc: 'A simple role check confirms the user is a "soc_analyst", but doesn\'t verify if finding "9999" belongs to their organization. An analyst at Tenant A can call /api/findings/9999 belonging to Tenant B. You must combine RBAC with non-negotiable database tenant/owner predicates.'
+            }
+        ]
+    },
+    'Z_model_abac': {
+        id: 'Z_model_abac',
+        branch: 'Branch Z — Authorization Flow',
+        type: 'decision',
+        title: 'Attribute-Based Access Control (ABAC)',
+        decisionText: 'Evaluate access dynamically using policy rules against a set of attributes from the user (clearance, dept), resource (classification), action, and environment (time, device trust). Best when access requires satisfying multiple complex dimensions simultaneously.',
+        threats: [
+            {
+                name: 'ABAC Policy Sprawl & Administration Complexity',
+                critical: false,
+                desc: 'As policy counts grow, understanding what a user can access becomes highly complex. Mitigate this "policy sprawl" by enforcing strict unit tests for policies, conducting regular reviews, and using simulation tools to test access scenarios.'
+            }
+        ]
+    },
+    'Z_model_rebac': {
+        id: 'Z_model_rebac',
+        branch: 'Branch Z — Authorization Flow',
+        type: 'decision',
+        title: 'Relationship-Based Access Control (ReBAC)',
+        decisionText: 'Enforce access boundaries based on a graph of relationships (e.g., project -> resource -> comment) and inheritance (a project member can view comments). Access flows directly from relationship checks (owner, member, contributor) on the specific object.',
+        threats: [
+            {
+                name: 'ReBAC Graph Traversal Overhead & Latency',
+                critical: true,
+                desc: 'Evaluating graph paths for every API request can trigger extreme performance bottlenecks. Mitigate this by utilizing a high-performance graph database (e.g. Google Zanzibar model) or implementing aggressive, highly-optimized caching for relationship checks.'
+            }
+        ]
     }
 };
 
-// Automatically embed A6 MFA recommendation (mfaPolicies and threats) in A3, A4 and A5 (A5_yes, A5_no)
-['A3', 'A4', 'A5_yes', 'A5_no'].forEach(nodeId => {
-    const node = DECISION_TREE[nodeId];
-    if (node) {
-        node.mfaPolicies = [...MFA_RECOMMENDATION.mfaPolicies];
-        node.threats = [...(node.threats || []), ...MFA_RECOMMENDATION.threats];
+// 2. SVG Flow Chart Visualizations for both AuthN and AuthZ
+const SVG_FLOWS = {
+    'authn': {
+        layout: {
+            'start': { label: 'START', type: 'start', x: 300, y: 40 },
+            'A1': { label: 'A1', type: 'question', x: 160, y: 130 },
+            'A2': { label: 'A2', type: 'question', x: 80, y: 220 },
+            'A3': { label: 'A3 (D)', type: 'decision', x: 35, y: 320 },
+            'A4': { label: 'A4 (D)', type: 'decision', x: 125, y: 320 },
+            'A5': { label: 'A5', type: 'question', x: 240, y: 220 },
+            'A5_yes': { label: 'A5 (Y)', type: 'decision', x: 190, y: 320 },
+            'A5_no': { label: 'A5 (N)', type: 'decision', x: 275, y: 320 },
+            
+            'B1': { label: 'B1', type: 'question', x: 440, y: 130 },
+            'B2': { label: 'B2', type: 'question', x: 400, y: 220 },
+            'B2_user': { label: 'B2 (U)', type: 'decision', x: 350, y: 320 },
+            'B3': { label: 'B3', type: 'question', x: 450, y: 320 },
+            'B3_standard': { label: 'B3 (Std)', type: 'decision', x: 390, y: 430 },
+            'B3_high': { label: 'B3 (Hi)', type: 'decision', x: 450, y: 430 },
+            'B3_very_high': { label: 'B3 (VHi)', type: 'decision', x: 510, y: 430 },
+            'B4': { label: 'B4 (D)', type: 'decision', x: 530, y: 220 }
+        },
+        edges: [
+            { from: 'start', to: 'A1', label: 'Human' },
+            { from: 'start', to: 'B1', label: 'Machine' },
+            { from: 'A1', to: 'A2', label: 'YES' },
+            { from: 'A1', to: 'A5', label: 'NO' },
+            { from: 'A2', to: 'A3', label: 'Server' },
+            { from: 'A2', to: 'A4', label: 'SPA' },
+            { from: 'A5', to: 'A5_yes', label: 'YES' },
+            { from: 'A5', to: 'A5_no', label: 'NO' },
+            
+            { from: 'B1', to: 'B2', label: 'Internal' },
+            { from: 'B1', to: 'B4', label: 'External' },
+            { from: 'B2', to: 'B2_user', label: 'User' },
+            { from: 'B2', to: 'B3', label: 'Machine' },
+            { from: 'B3', to: 'B3_standard', label: 'Standard' },
+            { from: 'B3', to: 'B3_high', label: 'High' },
+            { from: 'B3', to: 'B3_very_high', label: 'ZeroTrust' }
+        ]
+    },
+    'authz': {
+        layout: {
+            'authz_start': { label: 'START', type: 'start', x: 300, y: 40 },
+            'Z_model_scopes': { label: 'Scopes', type: 'decision', x: 150, y: 160 },
+            'Z_dimensions': { label: 'Z1', type: 'question', x: 450, y: 160 },
+            'Z_model_rbac': { label: 'RBAC', type: 'decision', x: 340, y: 280 },
+            'Z_model_abac': { label: 'ABAC', type: 'decision', x: 450, y: 280 },
+            'Z_model_rebac': { label: 'ReBAC', type: 'decision', x: 560, y: 280 }
+        },
+        edges: [
+            { from: 'authz_start', to: 'Z_model_scopes', label: 'Machine' },
+            { from: 'authz_start', to: 'Z_dimensions', label: 'Human' },
+            { from: 'Z_dimensions', to: 'Z_model_rbac', label: 'RBAC' },
+            { from: 'Z_dimensions', to: 'Z_model_abac', label: 'ABAC' },
+            { from: 'Z_dimensions', to: 'Z_model_rebac', label: 'ReBAC' }
+        ]
     }
-});
-
-// 2. SVG Visualization Layout Details
-const SVG_LAYOUT = {
-    'start': { label: 'START', type: 'start', x: 300, y: 40 },
-    'A1': { label: 'A1', type: 'question', x: 160, y: 130 },
-    'A2': { label: 'A2', type: 'question', x: 80, y: 220 },
-    'A3': { label: 'A3 (D)', type: 'decision', x: 35, y: 320 },
-    'A4': { label: 'A4 (D)', type: 'decision', x: 125, y: 320 },
-    'A5': { label: 'A5', type: 'question', x: 240, y: 220 },
-    'A5_yes': { label: 'A5 (Y)', type: 'decision', x: 190, y: 320 },
-    'A5_no': { label: 'A5 (N)', type: 'decision', x: 275, y: 320 },
-    
-    'B1': { label: 'B1', type: 'question', x: 440, y: 130 },
-    'B2': { label: 'B2', type: 'question', x: 400, y: 220 },
-    'B2_user': { label: 'B2 (U)', type: 'decision', x: 350, y: 320 },
-    'B3': { label: 'B3', type: 'question', x: 450, y: 320 },
-    'B3_standard': { label: 'B3 (Std)', type: 'decision', x: 390, y: 430 },
-    'B3_high': { label: 'B3 (Hi)', type: 'decision', x: 450, y: 430 },
-    'B3_very_high': { label: 'B3 (VHi)', type: 'decision', x: 510, y: 430 },
-    'B4': { label: 'B4 (D)', type: 'decision', x: 530, y: 220 }
 };
-
-const SVG_EDGES = [
-    { from: 'start', to: 'A1', label: 'Human' },
-    { from: 'start', to: 'B1', label: 'Machine' },
-    { from: 'A1', to: 'A2', label: 'YES' },
-    { from: 'A1', to: 'A5', label: 'NO' },
-    { from: 'A2', to: 'A3', label: 'Server' },
-    { from: 'A2', to: 'A4', label: 'SPA' },
-    { from: 'A5', to: 'A5_yes', label: 'YES' },
-    { from: 'A5', to: 'A5_no', label: 'NO' },
-    
-    { from: 'B1', to: 'B2', label: 'Internal' },
-    { from: 'B1', to: 'B4', label: 'External' },
-    { from: 'B2', to: 'B2_user', label: 'User' },
-    { from: 'B2', to: 'B3', label: 'Machine' },
-    { from: 'B3', to: 'B3_standard', label: 'Standard' },
-    { from: 'B3', to: 'B3_high', label: 'High' },
-    { from: 'B3', to: 'B3_very_high', label: 'ZeroTrust' }
-];
 
 // 3. Application State variables
+let currentFlow = 'authn'; // 'authn' or 'authz'
 let currentNodeId = 'start';
 let pathHistory = ['start'];
 
 // 4. DOM Elements
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+const btnHome = document.getElementById('btn-home');
+
 const wizardCard = document.getElementById('wizard-card');
 const wizardTitle = document.getElementById('wizard-title');
 const wizardText = document.getElementById('wizard-text');
@@ -364,8 +487,6 @@ const wizardChoices = document.getElementById('wizard-choices');
 const btnBack = document.getElementById('btn-back');
 const btnRestart = document.getElementById('btn-restart');
 const breadcrumbs = document.getElementById('breadcrumbs');
-
-const btnThemeToggle = document.getElementById('btn-theme-toggle');
 
 const reportModal = document.getElementById('report-modal');
 const reportMarkdownContent = document.getElementById('report-markdown-content');
@@ -430,7 +551,7 @@ const renderWizard = () => {
         `;
         wizardText.appendChild(decisionBox);
 
-        // 2. Render MFA Policies Checklist if Node is A6
+        // 2. Render MFA Policies Checklist if Node is from AuthN flow
         if (node.mfaPolicies) {
             const mfaHeading = document.createElement('h3');
             mfaHeading.className = 'threats-section-title';
@@ -455,7 +576,57 @@ const renderWizard = () => {
             wizardChoices.appendChild(mfaList);
         }
 
-        // 3. Render Threat mitigations list
+        // 3. Render Tenant Isolation Checklist if Node has multiTenancy (AuthZ flow)
+        if (node.multiTenancy) {
+            const tenancyHeading = document.createElement('h3');
+            tenancyHeading.className = 'threats-section-title';
+            tenancyHeading.style.color = 'var(--accent-cyan)';
+            tenancyHeading.innerHTML = `🛡️ Required Multi-Tenancy Isolation Bounds`;
+            wizardChoices.appendChild(tenancyHeading);
+
+            const tenancyList = document.createElement('div');
+            tenancyList.className = 'mfa-policies-list';
+            node.multiTenancy.forEach(policy => {
+                const item = document.createElement('div');
+                item.className = 'mfa-policy-item';
+                item.innerHTML = `
+                    <div class="policy-dot" style="background-color: var(--accent-cyan)"></div>
+                    <div class="policy-details">
+                        <h4>${policy.name}</h4>
+                        <p>${policy.desc}</p>
+                    </div>
+                `;
+                tenancyList.appendChild(item);
+            });
+            wizardChoices.appendChild(tenancyList);
+        }
+
+        // 4. Render Function Protection Checklist if Node has functionProtection (AuthZ flow)
+        if (node.functionProtection) {
+            const funcHeading = document.createElement('h3');
+            funcHeading.className = 'threats-section-title';
+            funcHeading.style.color = 'var(--accent-green)';
+            funcHeading.innerHTML = `⚙️ Function-Level Access Protections`;
+            wizardChoices.appendChild(funcHeading);
+
+            const funcList = document.createElement('div');
+            funcList.className = 'mfa-policies-list';
+            node.functionProtection.forEach(policy => {
+                const item = document.createElement('div');
+                item.className = 'mfa-policy-item';
+                item.innerHTML = `
+                    <div class="policy-dot" style="background-color: var(--accent-green)"></div>
+                    <div class="policy-details">
+                        <h4>${policy.name}</h4>
+                        <p>${policy.desc}</p>
+                    </div>
+                `;
+                funcList.appendChild(item);
+            });
+            wizardChoices.appendChild(funcList);
+        }
+
+        // 5. Render Threat mitigations list
         if (node.threats && node.threats.length > 0) {
             const threatHeading = document.createElement('h3');
             threatHeading.className = 'threats-section-title';
@@ -497,11 +668,12 @@ const renderWizard = () => {
             });
         }
 
-        // 4. Render Action Buttons (Export Report or Proceed to Next step)
+        // 6. Render Action Buttons (Export Report or Return to Home)
         const actionsGroup = document.createElement('div');
         actionsGroup.className = 'wizard-actions-group';
         actionsGroup.style.marginTop = '30px';
         actionsGroup.style.display = 'flex';
+        actionsGroup.style.flexWrap = 'wrap';
         actionsGroup.style.gap = '15px';
 
         const btnExport = document.createElement('button');
@@ -523,22 +695,20 @@ const renderWizard = () => {
         });
         actionsGroup.appendChild(btnExport);
 
-        if (node.next) {
-            const btnNext = document.createElement('button');
-            btnNext.className = 'btn btn-secondary';
-            btnNext.innerHTML = `
-                Proceed to MFA Policy
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                    <polyline points="12 5 19 12 12 19"/>
-                </svg>
-            `;
-            btnNext.addEventListener('click', () => {
-                playSound('click');
-                navigateTo(node.next);
-            });
-            actionsGroup.appendChild(btnNext);
-        }
+        const btnGoHome = document.createElement('button');
+        btnGoHome.className = 'btn btn-secondary';
+        btnGoHome.innerHTML = `
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Portal Home
+        `;
+        btnGoHome.addEventListener('click', () => {
+            playSound('back');
+            returnToLandingPortal();
+        });
+        actionsGroup.appendChild(btnGoHome);
 
         wizardChoices.appendChild(actionsGroup);
     }
@@ -569,9 +739,9 @@ const renderBreadcrumbs = () => {
         span.dataset.node = nodeId;
         
         let label = 'START';
-        if (nodeId !== 'start') {
+        if (nodeId !== 'start' && nodeId !== 'authz_start') {
             const n = DECISION_TREE[nodeId];
-            label = n ? n.title.split('.')[0] : nodeId; // Use ID or prefix (e.g. A3)
+            label = n ? n.title.split('.')[0] : nodeId;
         }
         
         span.textContent = label;
@@ -618,8 +788,13 @@ const stepBack = () => {
 
 const restartTree = () => {
     playSound('click');
-    currentNodeId = 'start';
-    pathHistory = ['start'];
+    if (currentFlow === 'authn') {
+        currentNodeId = 'start';
+        pathHistory = ['start'];
+    } else if (currentFlow === 'authz') {
+        currentNodeId = 'authz_start';
+        pathHistory = ['authz_start'];
+    }
     renderWizard();
 };
 
@@ -633,15 +808,19 @@ const setupSVGVisualizer = () => {
     edgesGroup.innerHTML = '';
     nodesGroup.innerHTML = '';
     
+    const activeFlowData = SVG_FLOWS[currentFlow];
+    if (!activeFlowData) return;
+    
+    const layoutDetails = activeFlowData.layout;
+    const edgesDetails = activeFlowData.edges;
+    
     // 1. Draw connecting bezier edges
-    SVG_EDGES.forEach(edge => {
-        const fromNode = SVG_LAYOUT[edge.from];
-        const toNode = SVG_LAYOUT[edge.to];
+    edgesDetails.forEach(edge => {
+        const fromNode = layoutDetails[edge.from];
+        const toNode = layoutDetails[edge.to];
         if (!fromNode || !toNode) return;
         
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        
-        // Draw elegant curve: cubic-bezier matching flowchart aesthetics
         const midY = (fromNode.y + toNode.y) / 2;
         const d = `M ${fromNode.x} ${fromNode.y} C ${fromNode.x} ${midY}, ${toNode.x} ${midY}, ${toNode.x} ${toNode.y}`;
         
@@ -650,13 +829,12 @@ const setupSVGVisualizer = () => {
         path.setAttribute('id', `edge-${edge.from}-${edge.to}`);
         path.setAttribute('marker-end', 'url(#arrow)');
         
-        // Render simple text labels on edges if space permits
         edgesGroup.appendChild(path);
     });
     
     // 2. Draw nodes
-    Object.keys(SVG_LAYOUT).forEach(nodeId => {
-        const layout = SVG_LAYOUT[nodeId];
+    Object.keys(layoutDetails).forEach(nodeId => {
+        const layout = layoutDetails[nodeId];
         const config = DECISION_TREE[nodeId] || { type: 'question' };
         
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -667,7 +845,6 @@ const setupSVGVisualizer = () => {
         g.setAttribute('role', 'button');
         g.setAttribute('aria-label', `Navigate to ${config.title || layout.label}`);
         
-        // Construct SVG shapes based on type
         if (layout.type === 'start') {
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rect.setAttribute('x', layout.x - 30);
@@ -686,9 +863,9 @@ const setupSVGVisualizer = () => {
             g.appendChild(circle);
         } else if (config.type === 'decision') {
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', layout.x - 28);
+            rect.setAttribute('x', layout.x - 32);
             rect.setAttribute('y', layout.y - 16);
-            rect.setAttribute('width', 56);
+            rect.setAttribute('width', 64);
             rect.setAttribute('height', 32);
             rect.setAttribute('rx', 5);
             rect.setAttribute('class', 'node-shape');
@@ -759,11 +936,10 @@ const updateSVGState = () => {
     }
 };
 
-
-
 // --- REPORT MD EXPORT AND DOWNLOAD LOGIC ---
 const generateMarkdownReport = () => {
-    let report = `# Authentication Audit Security Report\n`;
+    const isAuthN = currentFlow === 'authn';
+    let report = `# ${isAuthN ? 'Authentication' : 'Authorization'} Audit Security Report\n`;
     report += `Generated on: ${new Date().toLocaleDateString()} — via AuthGuard Decision Tree Analyzer\n\n`;
     report += `## Audit Parameters & Path Logs\n`;
     
@@ -788,13 +964,29 @@ const generateMarkdownReport = () => {
     const finalNode = DECISION_TREE[currentNodeId];
     if (finalNode && finalNode.type === 'decision') {
         report += `## Recommended Mechanism Design\n`;
-        report += `> [!IMPORTANT]\n`;
+        report += `> [%s]\n`.replace('%s', '!IMPORTANT');
         report += `> **${finalNode.title}**\n`;
         report += `> ${finalNode.decisionText}\n\n`;
         
         if (finalNode.mfaPolicies) {
             report += `### Required MFA Implementation Policies\n`;
             finalNode.mfaPolicies.forEach(policy => {
+                report += `- **${policy.name}:** ${policy.desc}\n`;
+            });
+            report += `\n`;
+        }
+
+        if (finalNode.multiTenancy) {
+            report += `### Required Multi-Tenancy Isolation Bounds\n`;
+            finalNode.multiTenancy.forEach(policy => {
+                report += `- **${policy.name}:** ${policy.desc}\n`;
+            });
+            report += `\n`;
+        }
+
+        if (finalNode.functionProtection) {
+            report += `### Required Function-Level Access Protections\n`;
+            finalNode.functionProtection.forEach(policy => {
                 report += `- **${policy.name}:** ${policy.desc}\n`;
             });
             report += `\n`;
@@ -818,6 +1010,10 @@ const generateMarkdownReport = () => {
 const openReportModal = () => {
     const md = generateMarkdownReport();
     reportMarkdownContent.textContent = md;
+    
+    // Set modal title depending on flow
+    document.getElementById('modal-title').textContent = currentFlow === 'authn' ? 'Authentication Audit Report' : 'Authorization Audit Report';
+    
     reportModal.classList.add('active');
 };
 
@@ -855,22 +1051,68 @@ const downloadReportFile = () => {
     URL.revokeObjectURL(url);
 };
 
+// --- PORTAL ROUTER STATE TRANSITIONS ---
+const startFlow = (flowType) => {
+    currentFlow = flowType;
+    if (flowType === 'authn') {
+        currentNodeId = 'start';
+        pathHistory = ['start'];
+    } else if (flowType === 'authz') {
+        currentNodeId = 'authz_start';
+        pathHistory = ['authz_start'];
+    }
+    
+    // Transition view panels
+    document.getElementById('view-landing').classList.add('hidden');
+    document.getElementById('view-analyzer').classList.remove('hidden');
+    btnHome.classList.remove('hidden');
+    
+    // Set headers dynamically
+    const titleText = flowType === 'authn' ? 'Interactive Authentication Flow' : 'Interactive Authorization Flow';
+    document.getElementById('graph-title-text').textContent = titleText;
+    
+    // Render setup
+    setupSVGVisualizer();
+    renderWizard();
+};
+
+const returnToLandingPortal = () => {
+    document.getElementById('view-analyzer').classList.add('hidden');
+    document.getElementById('view-landing').classList.remove('hidden');
+    btnHome.classList.add('hidden');
+};
+
 // --- INITIALIZE THE APP TABS & THEMES ---
 const setupAppFramework = () => {
-
+    // 1. Landing Portal route buttons
+    document.getElementById('card-route-authn').addEventListener('click', () => {
+        playSound('success');
+        startFlow('authn');
+    });
     
-    // 2. Theme Toggle
+    document.getElementById('card-route-authz').addEventListener('click', () => {
+        playSound('success');
+        startFlow('authz');
+    });
+    
+    // 2. Return to Portal Home buttons
+    btnHome.addEventListener('click', () => {
+        playSound('back');
+        returnToLandingPortal();
+    });
+    
+    // 3. Theme Toggle
     btnThemeToggle.addEventListener('click', () => {
         playSound('click');
         document.body.classList.toggle('light-theme');
         document.body.classList.toggle('dark-theme');
     });
     
-    // 3. Wizard Footer navigation
+    // 4. Wizard Footer navigation
     btnBack.addEventListener('click', stepBack);
     btnRestart.addEventListener('click', restartTree);
     
-    // 4. Modal listeners
+    // 5. Modal listeners
     btnCloseModal.addEventListener('click', closeReportModal);
     btnCopyReport.addEventListener('click', copyReportToClipboard);
     btnDownloadReport.addEventListener('click', downloadReportFile);
@@ -885,9 +1127,26 @@ const setupAppFramework = () => {
 
 // --- APP INITIALIZER BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
-    setupAppFramework();
-    setupSVGVisualizer();
+    // Programmatically inject shared recommendations into respective decision databases
     
-    // Load initial node
-    renderWizard();
+    // AuthN
+    ['A3', 'A4', 'A5_yes', 'A5_no'].forEach(nodeId => {
+        const node = DECISION_TREE[nodeId];
+        if (node) {
+            node.mfaPolicies = [...MFA_RECOMMENDATION.mfaPolicies];
+            node.threats = [...(node.threats || []), ...MFA_RECOMMENDATION.threats];
+        }
+    });
+    
+    // AuthZ
+    ['Z_model_scopes', 'Z_model_rbac', 'Z_model_abac', 'Z_model_rebac'].forEach(nodeId => {
+        const node = DECISION_TREE[nodeId];
+        if (node) {
+            node.multiTenancy = [...AUTHZ_RECOMMENDATION.multiTenancy];
+            node.functionProtection = [...AUTHZ_RECOMMENDATION.functionProtection];
+            node.threats = [...(node.threats || []), ...AUTHZ_RECOMMENDATION.threats];
+        }
+    });
+
+    setupAppFramework();
 });
